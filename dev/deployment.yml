@@ -19,6 +19,10 @@ spec:
         image: 992382837099.dkr.ecr.us-east-1.amazonaws.com/flask-app:latest
         ports:
         - containerPort: 5000
+        command:
+        - bin/bash
+        - '-c'
+        - sleep infinity
         securityContext:
           runAsUser: 1000
           runAsNonRoot: true
