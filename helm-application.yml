@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rabbitmq
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: rabbitmq
+    repoURL: https://992382837099.dkr.ecr.us-east-1.amazonaws.com
+    targetRevision: 12.0.6
+    helm:
+      releaseName: rabbitmq
+      valueFiles:
+      - helm-applications/rabbitmq/values.yaml
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: rabbitmq
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    automated:
+      selfHeal: true
+      prune: true
