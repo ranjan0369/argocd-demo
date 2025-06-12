@@ -11,7 +11,8 @@ spec:
     path: helm-applications/rabbitmq
     helm:
       valueFiles:
-      - helm-applications/rabbitmq/values.yaml
+      - values.yaml
+      ignoreMissingValueFiles: true
   destination:
     server: https://kubernetes.default.svc
     namespace: rabbitmq

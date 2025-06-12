@@ -16,7 +16,7 @@ global:
   ## E.g.
   ## imagePullSecrets:
   ##   - myRegistryKeySecretName
-  ##
+  ###
   imagePullSecrets: []
   storageClass: ""
 
@@ -139,7 +139,7 @@ auth:
   ## @param auth.securePassword Whether to set the RabbitMQ password securely. This is incompatible with loading external RabbitMQ definitions and 'true' when not setting the auth.password parameter.
   ## ref: https://github.com/bitnami/containers/tree/main/bitnami/rabbitmq#environment-variables
   ##
-  securePassword: true
+  securePassword: false
   ## @param auth.existingPasswordSecret Existing secret with RabbitMQ credentials (must contain a value for `rabbitmq-password` key)
   ## e.g:
   ## existingPasswordSecret: name-of-existing-secret
@@ -151,7 +151,7 @@ auth:
   ## @param auth.erlangCookie Erlang cookie to determine whether different nodes are allowed to communicate with each other
   ## ref: https://github.com/bitnami/containers/tree/main/bitnami/rabbitmq#environment-variables
   ##
-  erlangCookie: ""
+  erlangCookie: "mmFFa1qhazZimkKHF9YcXuqZBzcVqIQB"
   ## @param auth.existingErlangSecret Existing secret with RabbitMQ Erlang cookie (must contain a value for `rabbitmq-erlang-cookie` key)
   ## e.g:
   ## existingErlangSecret: name-of-existing-secret
@@ -321,6 +321,7 @@ containerPorts:
   manager: 15672
   epmd: 4369
   metrics: 9419
+  # metrics: 15692
 
 ## @param initScripts Dictionary of init scripts. Evaluated as a template.
 ## Specify dictionary of scripts to be run at first boot
@@ -910,7 +911,7 @@ persistence:
   ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
   ##   GKE, AWS & OpenStack)
   ##
-  storageClass: ""
+  storageClass: gp2
   ## @param persistence.selector Selector to match an existing Persistent Volume
   ## selector:
   ##   matchLabels:
@@ -937,7 +938,7 @@ persistence:
   ## @param persistence.size PVC Storage Request for RabbitMQ data volume
   ## If you change this value, you might have to adjust `rabbitmq.diskFreeLimit` as well
   ##
-  size: 8Gi
+  size: 25Gi
   ## @param persistence.annotations Persistence annotations. Evaluated as a template
   ## Example:
   ## annotations:
@@ -959,6 +960,7 @@ service:
   ## @param service.type Kubernetes Service type
   ##
   type: ClusterIP
+  # type: NodePort
 
   ## @param service.portEnabled Amqp port. Cannot be disabled when `auth.tls.enabled` is `false`. Listener can be disabled with `listeners.tcp = none`.
   ##
@@ -987,6 +989,7 @@ service:
     dist: 25672
     manager: 15672
     metrics: 9419
+    # metrics: 15692
     epmd: 4369
   ## Service ports name
   ## @param service.portNames.amqp Amqp service port name
@@ -1016,7 +1019,7 @@ service:
     amqp: ""
     amqpTls: ""
     dist: ""
-    manager: ""
+    manager: "32021"
     epmd: ""
     metrics: ""
   ## @param service.extraPorts Extra ports to expose in the service
@@ -1240,7 +1243,7 @@ metrics:
     enabled: true
     ## @param metrics.serviceMonitor.namespace Specify the namespace in which the serviceMonitor resource will be created
     ##
-    namespace: ""
+    namespace: "rabbitmq"
     ## @param metrics.serviceMonitor.interval Specify the interval at which metrics should be scraped
     ##
     interval: 30s
@@ -1274,10 +1277,13 @@ metrics:
     ## @param metrics.serviceMonitor.path Define the path used by ServiceMonitor to scrap metrics
     ## Could be /metrics for aggregated metrics or /metrics/per-object for more details
     ##
-    path: ""
+    path: "/metrics/detailed"
     ## @param metrics.serviceMonitor.params Define the HTTP URL parameters used by ServiceMonitor
     ##
-    params: {}
+    params: 
+      family:
+        - queue_coarse_metrics
+        - queue_consumer_count
     ## @param metrics.serviceMonitor.selector ServiceMonitor selector labels
     ## ref: https://github.com/bitnami/charts/tree/main/bitnami/prometheus-operator#prometheus-configuration
     ##
