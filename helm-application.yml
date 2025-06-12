@@ -6,15 +6,14 @@ metadata:
 spec:
   project: default
   source:
-    chart: rabbitmq
-    repoURL: https://992382837099.dkr.ecr.us-east-1.amazonaws.com
-    targetRevision: 12.0.6
+    repoURL: https://github.com/ranjan0369/argocd-demo.git
+    targetRevision: HEAD
+    path: helm-applications/rabbitmq
     helm:
-      releaseName: rabbitmq
       valueFiles:
       - helm-applications/rabbitmq/values.yaml
   destination:
-    server: "https://kubernetes.default.svc"
+    server: https://kubernetes.default.svc
     namespace: rabbitmq
   syncPolicy:
     syncOptions:
