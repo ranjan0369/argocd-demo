@@ -1,28 +1,18 @@
-# Copyright VMware, Inc.
-# SPDX-License-Identifier: APACHE-2.0
-
-annotations:
-  category: Infrastructure
-  licenses: Apache-2.0
-apiVersion: v2
-appVersion: 3.12.1
-dependencies:
-  - name: common
-    repository: oci://registry-1.docker.io/bitnamicharts
-    tags:
-      - bitnami-common
-    version: 2.x.x
-description: RabbitMQ is an open source general-purpose message broker that is designed for consistent, highly-available messaging scenarios (both synchronous and asynchronous).
-home: https://bitnami.com
-icon: https://bitnami.com/assets/stacks/rabbitmq/img/rabbitmq-stack-220x234.png
+apiVersion: v1
+appVersion: 0.19.1
+description: Open source, tool for automating Kubernetes deployment updates. This
+  is a custom fork of the original Keel project.
+engine: gotpl
+home: https://clem59170.github.io/keel
+icon: https://raw.githubusercontent.com/keel-hq/keel/master/static/keel-logo.png
 keywords:
-  - rabbitmq
-  - message queue
-  - AMQP
+- kubernetes deployment
+- helm release
+- continuous deployment
 maintainers:
-  - name: VMware, Inc.
-    url: https://github.com/bitnami/charts
-name: rabbitmq
+- name: clem59170
+name: keel
 sources:
-  - https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq
-version: 12.0.6
+- https://github.com/keel-hq/keel
+- https://github.com/clem59170/keel
+version: 1.0.5
