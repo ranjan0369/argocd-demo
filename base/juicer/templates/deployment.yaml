@@ -1,0 +1,238 @@
+{{- range $service, $val := .Values.services }}
+{{- if .typeDeployment }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $service }}
+  labels:
+    {{- if .enablefargate }}
+    fargate: "yes"
+    {{- end }}
+    app: {{ $service }}
+    release: {{ $.Release.Name | quote }}
+    chart: {{ $.Chart.Name }}
+  {{- if or $.Values.installKeel .deploymentAnnotations }}
+  annotations:
+    {{- if $.Values.installKeel }}
+    keel.sh/policy: force
+    keel.sh/trigger: poll      
+    keel.sh/pollSchedule: "@every 30s"
+    {{- end }}
+    {{- if .deploymentAnnotations }}
+    {{- toYaml .deploymentAnnotations | nindent 4 }}
+    {{- end }}
+  {{- end }}
+
+spec:
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 5%
+  replicas: {{ .replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ $service }}
+  template:
+    metadata:
+      labels:
+      {{- if .enablefargate }}
+        fargate: "yes"
+      {{- end }}
+        app: {{ $service }}
+        release: {{ $.Release.Name | quote }}
+        chart: {{ $.Chart.Name }}
+      {{- if .podAnnotations }}
+      annotations:
+        {{- range $key, $value := .podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+    spec:
+      {{- if .affinity }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: {{ .affinity.key }}
+                  operator: In
+                  values:
+                    - {{ .affinity.values }}
+      {{- end }}
+      {{- if or .hostIPC .gpu_enabled }}
+      hostIPC: true
+      {{- end }}
+      {{- if .hostNetwork }}
+      hostNetwork: true
+      {{- end }}
+      {{- if $.Values.cloudProvider }}
+      {{- if eq $.Values.cloudProvider "aws"}}
+      imagePullSecrets:
+        - name: aws-ecr
+      {{- else }}
+      imagePullSecrets:
+        - name: private-registry
+      {{- end }}
+      {{- end }}
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+      {{- if .extraInitContainers }}
+      initContainers:
+{{ toYaml .extraInitContainers | indent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $service }}
+          image: {{ $.Values.repo }}{{ .imageSource }}:{{ $.Values.imageTag | default "latest" }}
+          {{- if .command }}
+          command: {{- toYaml .command |nindent 12}}
+          imagePullPolicy: {{ $.Values.imagePullPolicy | default "IfNotPresent" }}
+          {{- end }}
+          {{- if .resources }}
+          resources:
+            {{- toYaml .resources | default "{}" | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: ca-cert
+              mountPath: /etc/ssl/certs/ca.crt
+              subPath: tls.crt
+            - name: wildcard-certs
+              mountPath: /etc/ssl/private/wildcard-k8s/ca.crt
+              subPath: ca.crt
+            - name: wildcard-certs
+              mountPath: /etc/ssl/private/wildcard-k8s/tls.crt
+              subPath: tls.crt
+            - name: wildcard-certs
+              mountPath: /etc/ssl/private/wildcard-k8s/tls.key
+              subPath: tls.key
+          {{- if .gpu_enabled }}
+            - name: nvidia-mps
+              mountPath: /tmp/nvidia-mps
+          {{- end }}
+          {{- if .volumes }}
+          {{- range $volume, $details := .volumes }}
+            - name: {{ $volume }}
+              mountPath: {{ $details.mountPath }}
+              {{- if $details.subPath }}
+              subPath: {{ $details.subPath }}
+              {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- if or .env .gpu_enabled }}
+          env:
+          {{- if .gpu_enabled }}
+            - name: CUDA_MPS_PIPE_DIRECTORY
+              value: /tmp/nvidia-mps
+          {{- end }}
+          {{- range $key, $value := .env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+          {{- end }}
+          {{- end }}
+          {{- if .servicePort }}
+          ports:
+          {{- range $name, $port := .servicePort }}
+            - name: {{ $name }}
+              containerPort: {{ $port }}
+          {{- end }}
+          {{- end }}
+          {{- if .livenessProbe }}
+          livenessProbe:
+            {{- toYaml .livenessProbe | default "{}" | nindent 12 }}
+          {{- end }}
+          {{- if .readinessProbe }}
+          readinessProbe:
+            {{- toYaml .livenessProbe | default "{}" | nindent 12 }}
+          {{- end }}
+
+        {{- if .sidecars }}
+        {{- range $sidecar, $info := .sidecars }}
+        - name: {{ $sidecar }}
+          imagePullPolicy: {{ $.Values.imagePullPolicy | default "IfNotPresent" }}
+          {{- if $info.parentRepo }}
+          image: {{ $.Values.repo }}{{ $info.image }}:{{ $.Values.imageTag | default "latest" }}
+          {{- else }}
+          image: {{ $info.image }}
+          {{- end }}
+          {{- if $info.command }}
+          command: {{- toYaml $info.command | nindent 12}}
+          {{- end }}
+          resources:
+            {{- toYaml .resources | default "{}" | nindent 12 }}
+          volumeMounts:
+            - name: ca-cert
+              mountPath: /etc/ssl/certs/ca.crt
+              subPath: tls.crt
+            - name: wildcard-certs
+              mountPath: /etc/ssl/private/wildcard-k8s/ca.crt
+              subPath: ca.crt
+            - name: wildcard-certs
+              mountPath: /etc/ssl/private/wildcard-k8s/tls.crt
+              subPath: tls.crt
+            - name: wildcard-certs
+              mountPath: /etc/ssl/private/wildcard-k8s/tls.key
+              subPath: tls.key
+          {{- if .gpu_enabled }}
+            - name: nvidia-mps
+              mountPath: /tmp/nvidia-mps
+          {{- end }}
+          {{- if .volumes }}
+          {{- range $volume, $details := $info.volumes }}
+            - name: {{ $volume }}
+              mountPath: {{ $details.mountPath }}
+              {{- if $details.subPath }}
+              subPath: {{ $details.subPath }}
+              {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- if or $info.env .gpu_enabled }}
+          env:
+          {{- if .gpu_enabled }}
+            - name: CUDA_MPS_PIPE_DIRECTORY
+              value: /tmp/nvidia-mps
+          {{- end }}
+          {{- range $key, $value := $info.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+          {{- end }}
+          {{- end }}
+          {{- if $info.servicePort }}
+          ports:
+          {{- range $name, $port := $info.servicePort }}
+            - name: {{ $name }}
+              containerPort: {{ $port }}
+          {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+      volumes:
+        - name: ca-cert
+          secret:
+            secretName: ca-key-pair
+        - name: wildcard-certs
+          secret:
+            secretName: wildcard-juicer-svc-cluster-local-tls
+      {{- if .gpu_enabled }}
+        - name: nvidia-mps
+          hostPath:
+            path: /tmp/nvidia-mps
+      {{- end }}
+      {{- if .volumes }}
+      {{- range $volume, $details := .volumes }}
+        {{- if $details.secretName }}
+        - name: {{ $volume }}
+          secret:
+            secretName: {{ $details.secretName }}
+            defaultMode: 0400
+        {{- end }}
+        {{- if $details.emptyDisk }}
+        - name: {{ $volume }}
+          persistentVolumeClaim:
+            claimName: {{ $service }}-{{ $volume }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}

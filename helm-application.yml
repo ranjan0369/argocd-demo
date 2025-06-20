@@ -1,21 +1,20 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: rabbitmq
-  namespace: argocd
+  name: juicer-apps
+  namespace: default
 spec:
   project: default
   source:
     repoURL: https://github.com/ranjan0369/argocd-demo.git
     targetRevision: HEAD
-    path: helm-applications/rabbitmq
+    path: base/juicer
     helm:
       valueFiles:
       - values.yaml
-      ignoreMissingValueFiles: true
   destination:
     server: https://kubernetes.default.svc
-    namespace: rabbitmq
+    namespace: default
   syncPolicy:
     syncOptions:
     - CreateNamespace=true

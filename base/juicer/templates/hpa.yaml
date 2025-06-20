@@ -1,0 +1,52 @@
+{{- range $service, $val := .Values.services }}
+{{- if .hpa }}
+{{- if .hpa.enabled }}
+---
+{{- if eq .hpa.metricsType "custom" }}
+apiVersion: autoscaling/v2beta2
+{{- end }}
+{{- if eq .hpa.metricsType "external" }}
+apiVersion: autoscaling/v2beta1
+{{- end }}
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $service }}
+  labels:
+    app: {{ $service }}
+    release: {{ $.Release.Name | quote }}
+    chart: {{ $.Chart.Name }}
+  {{- if .serviceAnnotations }}
+  annotations:
+    {{ toYaml .serviceAnnotations | nindent 4 }}
+  {{- end }}
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: {{ .deploymentKind }}
+    name: {{ $service }}
+  minReplicas: {{ .hpa.minReplicas | default 1 }}
+  maxReplicas: {{ .hpa.maxReplicas | default 2 }}
+  metrics:
+    {{- if eq .hpa.metricsType "custom" }}
+    - type: Object
+      object:
+        metric:
+          name: {{ .hpa.metricName }} #"rabbitmq_queue_messages_ready"
+        describedObject:
+          apiVersion: custom.metrics.k8s.io/v1/beta1
+          kind: {{ .hpa.kind }}
+          name: {{ .hpa.name }}
+        target:
+          type: Value
+          value: {{ toYaml .hpa.targetValue | default 200 }}
+    {{- end }}
+    {{- if eq .hpa.metricsType "external" }}
+    - type: External
+      external:
+        metricName: {{ .hpa.metricName }}
+        targetValue: {{ toYaml .hpa.targetValue | default 200 }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

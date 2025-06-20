@@ -1,0 +1,33 @@
+{{- range $services, $val := .Values.services }}
+{{- if .service }}
+{{- if .service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $services }}
+  labels:
+    app: {{ $services }}
+    release: {{ $.Release.Name | quote }}
+    chart: {{ $.Chart.Name }}
+  {{- if .service.serviceAnnotations }}
+  annotations:
+    {{ toYaml .service.serviceAnnotations | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    app: {{ $services }}
+  type: {{ .service.serviceType }}
+  # {{- if eq .service.serviceType "ClusterIP" }}
+  # clusterIP: {{ .service.clusterIP }}
+  # {{- end }}
+  {{- if .service.ports }}
+  ports:
+  {{- include "common.tplvalues.render" (dict "value" .service.ports "context" $) | nindent 4 }}
+  {{- end }}
+  {{- if .service.sessionAffinity }}
+  sessionAffinity: {{ .service.sessionAffinity }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

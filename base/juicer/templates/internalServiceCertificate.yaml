@@ -1,0 +1,19 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-juicer-svc-cluster-local
+  labels:
+    app: "ca-cert"
+    release: {{ $.Release.Name | quote }}
+    chart: {{ $.Chart.Name }}
+spec:
+  secretName: wildcard-juicer-svc-cluster-local-tls
+  issuerRef:
+    name: ca-juicer-issuer
+    # We can reference ClusterIssuers by changing the kind here.
+    # The default value is Issuer (i.e. a locally namespaced Issuer)
+    kind: Issuer
+  commonName: '*.default.svc.cluster.local'
+  dnsNames:
+  - '*.default.svc.cluster.local'

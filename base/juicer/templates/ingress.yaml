@@ -1,0 +1,37 @@
+{{- range $service, $val := .Values.services }}
+{{- if .ingress }}
+{{- if .ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $service }}
+  labels:
+    app: {{ $service }}
+  {{- if .ingress.annotations }}
+  annotations:
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    {{ toYaml .ingress.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .ingress.ingressClassName }}
+  {{- if $.Values.ingressTLS }}
+  tls:
+    - hosts:
+        - {{ .ingress.host }}.{{ $.Values.domain }}
+      secretName: {{ .ingress.host }}-tls
+  {{- end }}
+  rules:
+    - host: {{ .ingress.host }}.{{ $.Values.domain }}
+      http:
+        paths:
+          - path: {{ .ingress.path }}
+            pathType: {{ .ingress.pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ $service }}
+                port:
+                  number: {{ .ingress.servicePort }}
+{{- end }}
+{{- end }}
+{{- end }}

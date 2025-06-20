@@ -1,0 +1,937 @@
+---
+cloudProvider: vps
+repo: docker-registry-service.dev.fs.identv.com/k8s-juicer/
+imageTag: latest
+imagePullPolicy: Always
+certsecretName: ca-key-pair
+installKeel: true
+domain: juicer.internal
+ingressTLS: true
+
+services: {}
+  ## Functional Services
+
+  api:
+    typeDeployment: true
+    resources: {}
+    imageSource: sith-api
+    replicaCount: 1
+    command: ["bash", "-c", "update-ca-certificates --fresh && npm run setup && yarn start"]
+    deploymentAnnotations: {}
+    podAnnotations:
+      co.elastic.logs/enabled: false
+    livenessProbe:
+      httpGet:
+        path: /status
+        port: 10010
+      initialDelaySeconds: 5
+      periodSeconds: 8
+    # volumes:
+    #   api:
+    #     secretName: api
+    #     mountPath: /usr/src/app/.env
+    #     subPath: .env
+    servicePort:
+      service: 10010
+    service:
+      enabled: true
+      serviceType: ClusterIP
+      serviceAnnotations: {}
+      ports:
+      - name: http
+        protocol: TCP
+        port: 10010
+        targetPort: 10010
+    ingress:
+      servicePort: 10010
+      enabled: false
+      annotations:
+        # nginx.ingress.kubernetes.io/ssl-redirect: "false"
+        nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+        cert-manager.io/issuer: "letsencrypt-prod"
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+        kubernetes.io/ingress.class: "nginx"
+        nginx.ingress.kubernetes.io/proxy-body-size: "0"
+        nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,content-type,sessiontoken"
+      path: /
+      host: api
+
+  juicer-ui:
+    typeDeployment: true
+    resources: {}
+    imageSource: juicer-web-ui
+    replicaCount: 1
+    command: ["bash", "-c", "update-ca-certificates --fresh && npm start"]
+    deploymentAnnotations: {}
+    podAnnotations:
+      co.elastic.logs/enabled: false
+    # volumes:
+    #   juicer-ui:
+    #     secretName: juicer-ui
+    #     mountPath: /usr/src/app/.env
+    #     subPath: .env
+    servicePort:
+      service: 3000
+    service:
+      enabled: true
+      serviceType: ClusterIP
+      serviceAnnotations: {}
+      ports:
+      - name: http
+        protocol: TCP
+        port: 3000
+        targetPort: 3000
+    ingress:
+      servicePort: 3000
+      enabled: false
+      annotations:
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+        kubernetes.io/ingress.class: "nginx"
+        nginx.ingress.kubernetes.io/proxy-body-size: "0"
+        cert-manager.io/issuer: "letsencrypt-prod"
+        acme.cert-manager.io/http01-edit-in-place: "true"
+        nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,content-type,sessiontoken"
+      path: /
+      host: juicer
+        
+  # alert-notification-service:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: juicer-ans
+  #   replicaCount: 1
+  #   volumes:
+  #     alert-notification-service:
+  #       secretName: alert-notification-service
+  #       mountPath: /usr/src/app/.env
+  #       subPath: .env
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && npm start"]
+  #   servicePort: 
+  #     service: 8000
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     serviceAnnotations: {}
+  #     ports:
+  #     - name: http
+  #       protocol: TCP
+  #       port: 8000
+  #       targetPort: 8000
+  #   ingress:
+  #     enabled: true
+  #     servicePort: 8000
+  #     annotations:
+  #       nginx.ingress.kubernetes.io/enable-cors: "true"
+  #       kubernetes.io/ingress.class: "nginx"
+  #       nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  #       cert-manager.io/issuer: "letsencrypt-prod"
+  #       acme.cert-manager.io/http01-edit-in-place: "true"
+  #       nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,content-type,sessiontoken"
+  #       nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"
+  #       nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+  #     path: /
+  #     host: ans
+
+  # accounts:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: sith-accounts
+  #   replicaCount: 1
+  #   env:
+  #     NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca.crt
+  #   volumes:
+  #     accounts:
+  #       secretName: accounts
+  #       mountPath: /usr/src/app/.env
+  #       subPath: .env
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && npm start"]
+  #   servicePort:
+  #     service: 4040
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     ports:
+  #     - name: http
+  #       protocol: TCP
+  #       port: 4040
+  #       targetPort: 4040
+  #   ingress:
+  #     enabled: true
+  #     servicePort: 4040
+  #     annotations:
+  #       nginx.ingress.kubernetes.io/enable-cors: "true"
+  #       kubernetes.io/ingress.class: "nginx"
+  #       nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  #       cert-manager.io/issuer: "letsencrypt-prod"
+  #       acme.cert-manager.io/http01-edit-in-place: "true"
+  #       nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,content-type,sessiontoken"
+  #     path: /
+  #     host: parse
+
+  # video-extractor:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   resources: {}
+  #   imageSource: sith-video-extractor
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python -u app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     video-extractor:
+  #       secretName: video-extractor
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     video-extractor-hls:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/hls_streams
+  #   sidecars:
+  #     nginx:
+  #       image: nginx:latest
+  #       servicePort:
+  #         nginx: 80
+  #       volumes:
+  #         video-extractor-hls:
+  #           mountPath: /usr/share/nginx/html/sith-hls
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     sessionAffinity: None
+  #     serviceAnnotations: {}
+  #     ports:
+  #       - name: http
+  #         protocol: TCP
+  #         port: 80
+  #         targetPort: 80
+  #   ingress:
+  #     enabled: true
+  #     servicePort: 80
+  #     annotations:
+  #       nginx.ingress.kubernetes.io/enable-cors: "true"
+  #       kubernetes.io/ingress.class: "nginx"
+  #       nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  #       cert-manager.io/issuer: "letsencrypt-prod"
+  #       acme.cert-manager.io/http01-edit-in-place: "true"
+  #       nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,content-type,sessiontoken"
+  #     path: /
+  #     host: video-extractor
+
+  # cdn:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   resources: {}
+  #   imageSource: cdn-identv
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && npm start"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     cdn:
+  #       secretName: cdn
+  #       mountPath: /usr/src/app/.env
+  #       subPath: .env
+  #     data:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/data/
+  #   servicePort:
+  #     service: 3003
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     sessionAffinity: None
+  #     serviceAnnotations: {}
+  #     ports:
+  #       - name: http
+  #         protocol: TCP
+  #         port: 80
+  #         targetPort: 3003
+  #   ingress:
+  #     enabled: true
+  #     servicePort: 80
+  #     annotations:
+  #       nginx.ingress.kubernetes.io/enable-cors: "true"
+  #       kubernetes.io/ingress.class: "nginx"
+  #       nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  #       cert-manager.io/issuer: "letsencrypt-prod"
+  #       acme.cert-manager.io/http01-edit-in-place: "true"
+  #       nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,content-type,sessiontoken"
+  #     path: /
+  #     host: cdn
+
+  # output-movie:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: sith-output-display
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run -v python -u app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     output-movie:
+  #       secretName: output-movie
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  
+  # api-docs:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: juicer-api-docs-v2
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && yarn start "]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     api-docs:
+  #       secretName: api-docs
+  #       mountPath: /usr/src/app/.env
+  #       subPath: .env
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     sessionAffinity: None
+  #     serviceAnnotations: {}
+  #     ports:
+  #       - name: http
+  #         protocol: TCP
+  #         port: 3000
+  #         targetPort: 3000
+  #   ingress:
+  #     servicePort: 3000
+  #     enabled: true
+  #     annotations:
+  #       nginx.ingress.kubernetes.io/enable-cors: "true"
+  #       kubernetes.io/ingress.class: "nginx"
+  #       nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  #       cert-manager.io/issuer: "letsencrypt-prod"
+  #       acme.cert-manager.io/http01-edit-in-place: "true"
+  #       nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,content-type,sessiontoken"
+  #     path: /
+  #     host: docs
+
+  # output-csv:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: sith-output-to-csv
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run -v python -u app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     output-csv:
+  #       secretName: output-csv
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+
+  # output-json:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: sith-output-json
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run -v python -u app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     output-json:
+  #       secretName: output-json
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+
+  # output-detections:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: sith-output-detections
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python -u app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     output-detections:
+  #       secretName: output-detections
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+
+  # db-search:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: sith-db-search
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python -u app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     db-search:
+  #       secretName: db-search
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #   servicePort:
+  #     service: 9998
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     sessionAffinity: None
+  #     serviceAnnotations: {}
+  #     ports:
+  #       - name: http
+  #         protocol: TCP
+  #         port: 9998
+  #         targetPort: 9998
+  
+  # rule-engine-server:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   resources: {}
+  #   imageSource: sith-rule-engine
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python -u server.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     rule-engine:
+  #       secretName: rule-engine
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     rules:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/rules/
+  #     elastalert:
+  #       secretName: elastalert
+  #       mountPath: /opt/config/elastalert_config.yaml
+  #       subPath: elastalert_config.yaml
+  #   servicePort:
+  #     service: 9996
+  #   sidecars:
+  #     rule-engine-app:
+  #       image: sith-rule-engine
+  #       parentRepo: true
+  #       command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python -u app.py"]
+  #       volumes:
+  #         rule-engine:
+  #           mountPath: /usr/src/app/config.ini
+  #           subPath: config.ini
+  #         rules:
+  #           mountPath: /usr/src/app/rules/
+  #     elastalert:
+  #       image: jertel/elastalert-docker
+  #       servicePort:
+  #         service: 3030
+  #         service2: 3333
+  #       volumes:
+  #         rules:
+  #           mountPath: /opt/elastalert/rules
+  #         elastalert:
+  #           secretName: elastalert
+  #           mountPath: /opt/config/elastalert_config.yaml
+  #           subPath: elastalert_config.yaml
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     sessionAffinity: None
+  #     serviceAnnotations: {}
+  #     ports:
+  #       - name: http
+  #         protocol: TCP
+  #         port: 9996
+  #         targetPort: 9996
+    
+  # # Mailserver
+  # mailserver:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: docker-mailserver
+  #   env:
+  #     OVERRIDE_HOSTNAME: mailserver.default.svc.cluster.local
+  #     DMS_DEBUG: 1
+  #     SSL_TYPE: manual
+  #     SSL_CA_PATH: /etc/ssl/private/wildcard-k8s/ca.crt
+  #     SSL_CERT_PATH: /etc/ssl/private/wildcard-k8s/tls.crt
+  #     SSL_KEY_PATH: /etc/ssl/private/wildcard-k8s/tls.key
+  #     SUPERVISOR_LOGLEVEL: debug
+  #     POSTMASTER_ADDRESS: admin@mailserver.default.svc.cluster.local
+  #     PERMIT_DOCKER: connected-networks
+  #     ENABLE_SRS: 0
+  #     ENABLE_CLAMAV: 0
+  #     ENABLE_FAIL2BAN: 0
+  #     POSTSCREEN_ACTION: enforce
+  #     REPORT_RECIPIENT: 0
+  #     POSTFIX_INET_PROTOCOLS: all
+  #     ENABLE_SPAMASSASSIN: 0
+  #     SPAMASSASSIN_SPAM_TO_INBOX: 1
+  #     MOVE_SPAM_TO_JUNK: 1
+  #     SA_TAG: 2.0
+  #     SA_TAG2: 6.31
+  #     SA_KILL: 6.31
+  #     SA_SPAM_SUBJECT: '***SPAM*****'
+  #     ENABLE_FETCHMAIL: 0
+  #     FETCHMAIL_POLL: 300
+  #     DOVECOT_MAILBOX_FORMAT: maildir
+  #     ENABLE_POSTGREY: 0
+  #     POSTGREY_DELAY: 300
+  #     POSTGREY_MAX_AGE: 35
+  #     POSTGREY_TEXT: 'Delayed by Postgrey'
+  #     POSTGREY_AUTO_WHITELIST_CLIENTS: 5
+  #     ENABLE_SASLAUTHD: 0
+  #     SRS_SENDER_CLASSES: envelope_sender
+  #     RELAY_PORT: 25
+  #   servicePorts:
+  #     smtp: 25
+  #     smtps: 465
+  #     smtp-auth: 587
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     sessionAffinity: None
+  #     serviceAnnotations: {}
+  #     ports:
+  #       - name: smtp
+  #         protocol: TCP
+  #         port: 25
+  #         targetPort: 25
+  #       - name: stmps
+  #         protocol: TCP
+  #         port: 465
+  #         targetPort: 465
+  #       - name: smtp-auth
+  #         protocol: TCP
+  #         port: 587
+  #         targetPort: 587
+    
+  # # Engines
+  # aerial-engine:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   resources: {}
+  #   imageSource: sith-aerial-engine-v2.1
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     aerial-engine:
+  #       secretName: aerial-engine
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     model:
+  #       emptyDisk: data
+  #       mountPath: /usr/src/app/data
+
+  # aerial-model-server:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   gpu_enabled: true
+  #   hostIPC: true
+  #   resources:
+  #     limits:
+  #       k8s.amazonaws.com/vgpu: 1
+  #   imageSource: sith-aerial-model
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python grpc_server.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     aerial-model-server:
+  #       secretName: aerial-engine
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     model:
+  #       emptyDisk: data
+  #       mountPath: /usr/src/app/data
+  #   servicePort:
+  #     service: 50051
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     sessionAffinity: None
+  #     serviceAnnotations: {}
+  #     ports:
+  #       - name: service
+  #         protocol: TCP
+  #         port: 50051
+  #         targetPort: 50051
+
+  # object-engine:
+  #   typeDeployment: true
+  #   # typeStatefulSet: true
+  #   resources: {}
+  #   imageSource: sith_object_detector_retinanet_cv_tracking
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     object-engine:
+  #       secretName: object-engine
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+
+  # object-model-server:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   gpu_enabled: true
+  #   hostIPC: true
+  #   resources:
+  #     limits:
+  #       k8s.amazonaws.com/vgpu: 1
+  #   imageSource: object-detector-yolo
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python download_model.py && ln -s /root/.cache/torch/yolov5x.pt /usr/src/app/yolov5x.pt && pipenv run python api/grpc_server.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     object-model-server:
+  #       secretName: object-engine
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     model:
+  #       emptyDisk: true
+  #       mountPath: /root/.cache/torch/
+  #   servicePort:
+  #     service: 50051
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     sessionAffinity: None
+  #     serviceAnnotations: {}
+  #     ports:
+  #       - name: service
+  #         protocol: TCP
+  #         port: 50051
+  #         targetPort: 50051
+
+  # ocr:
+  #   typeDeployment: true
+  #   # typeStatefulSet: true
+  #   hostIPC: true
+  #   gpu_enabled: true
+  #   resources:
+  #     limits:
+  #       k8s.amazonaws.com/vgpu: 1
+  #   imageSource: sith_ocr
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     object-model-server:
+  #       secretName: sith-ocr
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+
+  # brand-engine:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   gpu_enabled: true
+  #   hostIPC: true
+  #   resources:
+  #     limits:
+  #       k8s.amazonaws.com/vgpu: 1
+  #   imageSource: brand-detector-clustering_retinanet-faiss
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     object-model-server:
+  #       secretName: brand
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     model:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/models/
+  #     data:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/data/
+
+  # custom-visual-engine-face:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   hostIPC: true
+  #   imageSource: visual-search-facial-indexer
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python facial_searcher_v2.py --template face"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     visual-search-facial-indexer:
+  #       secretName: visual-search-facial-indexer
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     frames:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/frames
+
+  # custom-visual-engine-brand:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   hostIPC: true
+  #   imageSource: visual-search-facial-indexer
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python facial_searcher_v2.py --template brand"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     visual-search-facial-indexer:
+  #       secretName: visual-search-facial-indexer
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     frames:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/frames
+ 
+  # sith-brand-detector:
+  #   typeDeployment: true
+  #   hostIPC: true
+  #   gpu_enabled: true
+  #   resources:
+  #     limits:
+  #       k8s.amazonaws.com/vgpu: 1
+  #   imageSource: sith-brand-detector
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python api/grpc_server.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     sith-brand-detector:
+  #       secretName: sith-brand-detector
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #   servicePort:
+  #     service: 50051
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     serviceAnnotations: {}
+  #     ports:
+  #     - name: service
+  #       protocol: TCP
+  #       port: 50051
+  #       targetPort: 50051
+
+  # facial-identification-v2-detection:
+  #   typeDeployment: true
+  #   hostIPC: true
+  #   gpu_enabled: true
+  #   resources:
+  #     limits:
+  #       k8s.amazonaws.com/vgpu: 1
+  #   imageSource: sith_facial_idetification_v2
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python api/faceDetection_grpcServer.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     facial-identification-v2-detection:
+  #       secretName: facial-identification-v2-detection
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #   servicePort:
+  #     service: 50051
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     serviceAnnotations: {}
+  #     ports:
+  #     - name: service
+  #       protocol: TCP
+  #       port: 50051
+  #       targetPort: 50051
+
+  # facial-embedding-model:
+  #   hostIPC: true
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   gpu_enabled: true
+  #   resources:
+  #     limits:
+  #       k8s.amazonaws.com/vgpu: 1
+  #   imageSource: sith-facial-identification-v2-embeeding
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python api/faceEmbedding_grpcServer.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     facial-embedding-model:
+  #       secretName: facial-embedding-model
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     model:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/models/
+  #   servicePort:
+  #     service: 50052
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     serviceAnnotations: {}
+  #     ports:
+  #     - name: service
+  #       protocol: TCP
+  #       port: 50052
+  #       targetPort: 50052
+
+  # brand-embedding-model:
+  #   hostIPC: true
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   gpu_enabled: true
+  #   resources:
+  #     limits:
+  #       k8s.amazonaws.com/vgpu: 1
+  #   imageSource: sith-brand-embedding
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python api/grpc_server.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     brand-embedding-model:
+  #       secretName: brand-embedding-model
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     model:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/models/
+  #   servicePort:
+  #     service: 50052
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     serviceAnnotations: {}
+  #     ports:
+  #     - name: service
+  #       protocol: TCP
+  #       port: 50052
+  #       targetPort: 50052
+  
+  # visual-search-facial-indexer-face:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   imageSource: visual-search-facial-indexer
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python -u facial_indexer.py --template face"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     visual-search-facial-indexer:
+  #       secretName: visual-search-facial-indexer
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     frames:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/frames
+
+  # visual-search-facial-indexer-brand:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   imageSource: visual-search-facial-indexer
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python -u facial_indexer.py --template brand"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     visual-search-facial-indexer:
+  #       secretName: visual-search-facial-indexer
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #     frames:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/frames
+
+  # visual-search-api:
+  #   typeDeployment: true
+  #   gpu_enabled: true
+  #   resources:
+  #     limits:
+  #       k8s.amazonaws.com/vgpu: 1
+  #   imageSource: visual-search-api
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python -u grpc_server.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     visual-search-api:
+  #       secretName: visual-search-api
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #   servicePorts:
+  #     service: 50051
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     serviceAnnotations: {}
+  #     ports:
+  #     - name: service
+  #       protocol: TCP
+  #       port: 50051
+  #       targetPort: 50051
+
+
+  # object-embedding:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: sith-object-embedding
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python grpc_server.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     object-embedding:
+  #       secretName: object-embedding
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini
+  #   servicePort:
+  #     service: 50051
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     sessionAffinity: None
+  #     serviceAnnotations: {}
+  #     ports:
+  #       - name: service
+  #         protocol: TCP
+  #         port: 50051
+  #         targetPort: 50051
+
+  # vader-engine:
+  #   typeDeployment: true
+  #   resources: {}
+  #   imageSource: vader-engine
+  #   replicaCount: 0
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && pipenv run python app.py"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     vader-engine:
+  #       secretName: vader-engine
+  #       mountPath: /usr/src/app/config.ini
+  #       subPath: config.ini

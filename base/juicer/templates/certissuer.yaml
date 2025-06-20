@@ -1,0 +1,12 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: ca-juicer-issuer
+  labels:
+    app: "ca-cert"
+    release: {{ $.Release.Name | quote }}
+    chart: {{ $.Chart.Name }}
+spec:
+  ca:
+    secretName: {{ .Values.certsecretName }}

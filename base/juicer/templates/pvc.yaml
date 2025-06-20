@@ -1,0 +1,23 @@
+{{- range $service, $val := .Values.services }}
+{{- if .typeDeployment }}
+{{- range $volume, $info := .volumes }}
+{{- if $info.emptyDisk }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $service }}-{{ $volume }}
+  labels:
+    app: {{ $service }}
+    release: {{ $.Release.Name | quote }}
+    chart: {{ $.Chart.Name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .storageSize | default "25Gi" }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
