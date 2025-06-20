@@ -223,48 +223,48 @@ services:
   #     path: /
   #     host: video-extractor
 
-  cdn:
-    #typeDeployment: true
-    typeStatefulSet: true
-    resources: {}
-    imageSource: cdn-identv
-    replicaCount: 1
-    command: ["bash", "-c", "update-ca-certificates --fresh && npm start"]
-    podAnnotations:
-      co.elastic.logs/enabled: false
-    deploymentAnnotations: {}
-    volumes:
-      cdn:
-        secretName: cdn
-        mountPath: /usr/src/app/.env
-        subPath: .env
-      data:
-        emptyDisk: true
-        mountPath: /usr/src/app/data/
-    servicePort:
-      service: 3003
-    service:
-      enabled: true
-      serviceType: ClusterIP
-      sessionAffinity: None
-      serviceAnnotations: {}
-      ports:
-        - name: http
-          protocol: TCP
-          port: 80
-          targetPort: 3003
-    ingress:
-      enabled: true
-      servicePort: 80
-      annotations:
-        nginx.ingress.kubernetes.io/enable-cors: "true"
-        kubernetes.io/ingress.class: "nginx"
-        nginx.ingress.kubernetes.io/proxy-body-size: "0"
-        cert-manager.io/issuer: "letsencrypt-prod"
-        acme.cert-manager.io/http01-edit-in-place: "true"
-        nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,content-type,sessiontoken"
-      path: /
-      host: cdn
+  # cdn:
+  #   #typeDeployment: true
+  #   typeStatefulSet: true
+  #   resources: {}
+  #   imageSource: cdn-identv
+  #   replicaCount: 1
+  #   command: ["bash", "-c", "update-ca-certificates --fresh && npm start"]
+  #   podAnnotations:
+  #     co.elastic.logs/enabled: false
+  #   deploymentAnnotations: {}
+  #   volumes:
+  #     cdn:
+  #       secretName: cdn
+  #       mountPath: /usr/src/app/.env
+  #       subPath: .env
+  #     data:
+  #       emptyDisk: true
+  #       mountPath: /usr/src/app/data/
+  #   servicePort:
+  #     service: 3003
+  #   service:
+  #     enabled: true
+  #     serviceType: ClusterIP
+  #     sessionAffinity: None
+  #     serviceAnnotations: {}
+  #     ports:
+  #       - name: http
+  #         protocol: TCP
+  #         port: 80
+  #         targetPort: 3003
+  #   ingress:
+  #     enabled: true
+  #     servicePort: 80
+  #     annotations:
+  #       nginx.ingress.kubernetes.io/enable-cors: "true"
+  #       kubernetes.io/ingress.class: "nginx"
+  #       nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  #       cert-manager.io/issuer: "letsencrypt-prod"
+  #       acme.cert-manager.io/http01-edit-in-place: "true"
+  #       nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,content-type,sessiontoken"
+  #     path: /
+  #     host: cdn
 
   # output-movie:
   #   typeDeployment: true
