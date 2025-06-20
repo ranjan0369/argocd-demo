@@ -8,7 +8,7 @@ installKeel: true
 domain: juicer.internal
 ingressTLS: true
 
-services: {}
+services:
   ## Functional Services
 
   api:
