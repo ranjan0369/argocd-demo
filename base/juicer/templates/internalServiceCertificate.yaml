@@ -8,9 +8,9 @@ metadata:
     release: {{ $.Release.Name | quote }}
     chart: {{ $.Chart.Name }}
 spec:
-  secretName: wildcard-juicer-svc-cluster-local-tls
+  secretName: wildcard-app-svc-cluster-local-tls
   issuerRef:
-    name: ca-juicer-issuer
+    name: ca-app-issuer
     # We can reference ClusterIssuers by changing the kind here.
     # The default value is Issuer (i.e. a locally namespaced Issuer)
     kind: Issuer
